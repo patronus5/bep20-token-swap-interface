@@ -1,0 +1,28 @@
+{
+  "tokens": [
+    {
+      "name": "BNB",
+      "symbol": "BNB",
+      "address": "-",
+      "chainId": 97,
+      "decimals": 18,
+      "logoURI": "https://pancakeswap.finance/images/tokens/0xbb4CdB9CBd36B01bD1cBaEBF2De08d9173bc095c.png"
+    },
+    {
+      "name": "Ethereum Token",
+      "symbol": "ETH",
+      "address": "0x8BaBbB98678facC7342735486C851ABD7A0d17Ca",
+      "chainId": 97,
+      "decimals": 18,
+      "logoURI": "https://pancakeswap.finance/images/tokens/0x2170Ed0880ac9A755fd29B2688956BD959F933F8.png"
+    },
+    {
+      "name": "MemeNation",
+      "symbol": "MEMEN",
+      "address": "0xAECBb99c5fCc038c781Ce5a9a9DF27A38a515d37",
+      "chainId": 97,
+      "decimals": 9,
+      "logoURI": ""
+    }
+  ]
+}
