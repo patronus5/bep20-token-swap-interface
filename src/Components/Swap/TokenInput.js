@@ -7,6 +7,7 @@ import {
 function TokenInput({
     token,
     value,
+    tokens,
     balance,
     onChangeInput,
     onChangeToken
@@ -24,26 +25,27 @@ function TokenInput({
     return (
         <div className="flex flex-col place-items-center w-full space-y-2">
             <TokenListModal
+                tokens={tokens}
                 isOpen={isOpen}
                 closeModal={closeModal}
                 onChangeToken={onChangeToken}
             />
-            <div className="flex flex-row justify-between place-items-center w-full">
+            <div className="flex flex-row justify-between place-items-center w-full mini-phone:text-sm">
                 <button
                     className="flex items-center bg-white bg-opacity-0 hover:bg-opacity-10 text-white text-xl font-bold rounded-md px-2 py-1"
                     onClick={openModal}
                 >
                     {token.logoURI &&
                         <img
-                            className="w-6 h-6 rounded-full"
+                            className="w-6 h-6 mini-phone:w-5 mini-phone:h-5 rounded-full"
                             src={token.logoURI}
                             alt=""
                         />
                     }
                     {!token.logoURI &&
-                        <QuestionMarkCircleIcon className="h-5 inline" />
+                        <QuestionMarkCircleIcon className="mini-phone:-ml-2 h-5 inline" />
                     }
-                    <span className="px-2">{token.symbol}</span>
+                    <span className="px-2 mini-phone:text-sm">{token.symbol}</span>
                     <span>
                         <svg
                             className="w-5 h-5"

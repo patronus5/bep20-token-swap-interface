@@ -1,14 +1,22 @@
-import React from 'react';
-import Web3 from 'web3';
-import Web3Modal from "web3modal";
-import { providers } from "ethers";
-import { ToastContainer, toast } from 'react-toastify';
-import WalletConnectProvider from "@walletconnect/web3-provider";
-import Swap from './Pages/Swap/Swap';
-import Header from './Layouts/Header';
+import React from 'react'
+import Web3 from 'web3'
+import Web3Modal from "web3modal"
+import { providers } from "ethers"
+import { ToastContainer, toast } from 'react-toastify'
+import WalletConnectProvider from "@walletconnect/web3-provider"
+import { BrowserRouter, Routes, Route } from 'react-router-dom'
+import tokenList from './Constants/Tokenlist.json'
+import Swap from './Pages/Swap/Swap'
+import Header from './Layouts/Header'
+import {
+  getERC20Contract,
+  getMemeRouterContract
+} from './Utils/ContractHelper'
 
 import './App.css';
 import 'react-toastify/dist/ReactToastify.css';
+
+const infuralURL = 'https://bsc-dataseed1.binance.org'
 
 const providerOptions = {
   walletconnect: {
@@ -35,8 +43,10 @@ class Container extends React.Component {
 
     this.state = {
       address: '',
+      tokens: [],
       provider: null,
       isSigned: false,
+      loading: true,
       web3Provider: null
     }
   }
@@ -72,7 +82,66 @@ class Container extends React.Component {
   disconnectWallet = async () => {
     await web3Modal.clearCachedProvider();
     window.location.reload()
-  };
+  }
+
+  loadTokensInfo = async () => {
+    let provider = new Web3.providers.HttpProvider(infuralURL)
+    const routerContract = getMemeRouterContract(provider)
+    let tokens = []
+    let flag = new Map()
+    for (let i = 0; i < tokenList.tokens.length; i ++) {
+      let item = tokenList.tokens[i]
+      if (i > 0) {
+        let info = await routerContract.methods.ListedTokens(item.address).call()
+        tokens.push({
+          ...item,
+          Router: info.Router,
+          BuyTax: info.BuyTax,
+          SellTax: info.SellTax
+        })
+      }
+      else {
+        tokens.push({
+          ...item
+        })
+      }
+      flag.set(item.address, true)
+    }
+
+    let id = 0;
+    while (1) {
+      try {
+        let tokenAddress = await routerContract.methods.allTokens(id).call()
+        if (!flag.get(tokenAddress)) {
+          let info = await routerContract.methods.ListedTokens(tokenAddress).call()
+          const tokenContract = getERC20Contract(tokenAddress, provider)
+          let name = await tokenContract.methods.name().call()
+          let symbol = await tokenContract.methods.symbol().call()
+          let decimals = await tokenContract.methods.decimals().call()
+          tokens.push({
+            name,
+            symbol,
+            decimals,
+            address: tokenAddress,
+            logoURI: "",
+            Router: info.Router,
+            BuyTax: info.BuyTax,
+            SellTax: info.SellTax
+          })
+        }
+
+        id ++
+      } catch (e) {
+        console.log(e.message)
+        break;
+      }
+    }
+    this.setState({
+      ...this.state.address,
+      tokens: tokens,
+      loading: false
+    })
+  }
 
   displayNotification = (text, appearance) => {
     let options = {
@@ -105,6 +174,11 @@ class Container extends React.Component {
     if(web3Modal.cachedProvider) {
       this.connectWallet()
     }
+    if(this.state.loading) {
+      (async () => {
+        this.loadTokensInfo()
+      })()
+    }
 
     return () => {
       if (this.state.provider.removeListener) {
@@ -118,22 +192,33 @@ class Container extends React.Component {
     return (
       <section className="relative">
         <ToastContainer />
-        <div className='w-full'>
-          <div className='w-full border-b border-light-gray'>
-            <Header
-              address={this.state.address}
-              isSigned={this.state.isSigned}
-              connectWallet={this.connectWallet}
-              disconnectWallet={this.disconnectWallet} />
+        {!this.state.loading &&
+          <div className='w-full'>
+            <div className='w-full border-b border-light-gray'>
+              <Header
+                address={this.state.address}
+                isSigned={this.state.isSigned}
+                connectWallet={this.connectWallet}
+                disconnectWallet={this.disconnectWallet} />
+            </div>
+            <Routes>
+              <Route
+                path="/"
+                element={
+                  <Swap
+                    tokens={this.state.tokens}
+                    account={this.state.address}
+                    isSigned={this.state.isSigned}
+                    provider={this.state.provider}
+                    connectWallet={this.connectWallet}
+                    displayNotification={this.displayNotification} />
+                }/>
+            </Routes>
           </div>
-          <div>
-            <Swap
-              account={this.state.address}
-              isSigned={this.state.isSigned}
-              provider={this.state.provider}
-              displayNotification={this.displayNotification} />
-          </div>
-        </div>
+        }
+        {this.state.loading &&
+          <div className='w-full min-h-screen bg-primary'></div>
+        }
       </section>
     )
   }
@@ -141,7 +226,9 @@ class Container extends React.Component {
 
 function App() {
   return (
-    <Container />
+    <BrowserRouter>
+      <Container />
+    </BrowserRouter>
   );
 }
 

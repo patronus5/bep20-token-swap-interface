@@ -26,6 +26,9 @@ module.exports = {
         'desktop-min': {
           'max': '1024px'
         },
+        'mini-phone': {
+          'max': '375px'
+        }
       }
     },
   },

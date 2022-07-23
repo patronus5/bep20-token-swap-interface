@@ -1,9 +1,13 @@
+
+import { useSearchParams } from 'react-router-dom'
 import React, { useState, useEffect } from 'react'
-import { constants } from 'ethers'
+import { constants, BigNumber } from 'ethers'
 import Web3 from 'web3'
 
-import TokenInput from '../../Components/Swap/TokenInput'
 import addresses from '../../Constants/Addresses'
+import TokenInput from '../../Components/Swap/TokenInput'
+import SlipageModal from '../../Components/Swap/SlipageModal'
+import TokenInfoModal from '../../Components/Swap/TokenInfoModal'
 
 import {
     BNBAddress,
@@ -15,18 +19,22 @@ import {
     getMemeRouterContract
 } from '../../Utils/ContractHelper'
 
-import tokenList from '../../Constants/Tokenlist.json'
-
 function Swap({
+    tokens,
     account,
     isSigned,
     provider,
+    connectWallet,
     displayNotification
 }) {
     const divButton = [25, 50, 75, 100]
 
-    const [tokenA, setTokenA] = useState(tokenList.tokens[0])
-    const [tokenB, setTokenB] = useState(tokenList.tokens[1])
+    const [search, setSearch] = useSearchParams()    
+    const [isOpenSetting, setIsOpenSetting] = useState(false)
+    const [isOpenTokenInfo, setIsOpenTokenInfo] = useState(false)
+
+    const [tokenA, setTokenA] = useState(tokens[0])
+    const [tokenB, setTokenB] = useState(tokens[1])
 
     const [balanceA, setBalanceA] = useState("0.0");
     const [balanceB, setBalanceB] = useState("0.0")
@@ -37,7 +45,17 @@ function Swap({
     const [expectedAmount, setExpectedAmount] = useState("0.0")
     const [typingTimeout, setTypingTimeout] = useState()
     const [approveState, setApproveState] = useState({})
+    const [isDefault, setIsDefault] = useState(true)
+    const [slipage, setSlipage] = useState('1.0')
     const [count, setCount] = useState(1)
+
+    const closeSetting = () => {
+        setIsOpenSetting(false)
+    }
+
+    const closeTokenInfo = () => {
+        setIsOpenTokenInfo(false)
+    }
 
     const getTokenBalance = async (token) => {
         try {
@@ -52,6 +70,9 @@ function Swap({
             }
             balance = fromBigNumber(balance, token.decimals)
             balance = parseFloat(parseFloat(balance).toFixed(5))
+            if (balance.toString().length > 10) {
+                balance = parseFloat(balance.toString().slice(0, 10))
+            }
             return balance
         } catch {
             return "0.0"
@@ -91,6 +112,20 @@ function Swap({
             return false
         }
         return true
+    }
+   
+    const onChangeSlipage = (value, isDefault) => {
+        if (value.match(/^[0-9]*[.,]?[0-9]*$/)) {
+            if (parseFloat(value) >= 100.0) {
+                return
+            }
+            setSlipage(value)
+            setIsDefault(isDefault)
+            if (value === "") {
+                setSlipage('1.0')
+                setIsDefault(true)
+            }
+        }
     }
     
     const onChangeTokenA = async (token) => {
@@ -217,10 +252,24 @@ function Swap({
     const swap = async () => {
         try {
             const routerContract = getMemeRouterContract(provider)
+            let amount = tokenA.address === BNBAddress
+                ? await routerContract.methods.getTokenAmountOut(
+                    tokenB.address,
+                    toBigNumber(inputA, tokenA.decimals)
+                ).call()
+                : await routerContract.methods.getETHAmountOut(
+                    tokenA.address,
+                    toBigNumber(inputA, tokenA.decimals),
+                ).call()
+            const precison = 1000000
+            const _slipage = parseInt(precison - (parseFloat(slipage) * precison / 100))
+            let minOut = BigNumber.from(amount).mul(BigNumber.from(_slipage)).div(BigNumber.from(precison))
+
             if (tokenA.address === BNBAddress) {
                 routerContract.methods.BuyTokens(
                     tokenB.address,
-                    "0"
+                    minOut.toString()
+                    // "0"
                 ).send({
                     from: account,
                     to: addresses.routerAddress,
@@ -241,7 +290,8 @@ function Swap({
                 routerContract.methods.SellTokens(
                     tokenA.address,
                     toBigNumber(inputA, tokenA.decimals),
-                    "0"
+                    minOut.toString()
+                    // "0"
                 ).send({
                     from: account,
                     to: addresses.routerAddress,
@@ -267,18 +317,56 @@ function Swap({
     }, [count])
 
     useEffect(() => {
+        if (search.get('buy') || search.get('swap')) {
+            let index = -1
+            let params = search.get('buy')
+            if(!params) {
+                params = search.get('swap')
+            }
+            tokens.forEach((item, i) => {
+                if (item.address === params) {
+                    index = i
+                }
+            })
+            if (index > 0) {
+                setTokenA(tokens[0])
+                setTokenB(tokens[index])
+            }
+            else {
+                alert("There is no the token that you are finding in router.")
+            }
+        }
+        else if (search.get('sell')) {
+            let index = -1
+            let params = search.get('sell')
+            tokens.forEach((item, i) => {
+                if (item.address === params) {
+                    index = i
+                }
+            })
+            if (index > 0) {
+                setTokenA(tokens[index])
+                setTokenB(tokens[0])
+            }
+            else {
+                alert("There is no the token that you are finding in router.")
+            }
+        }
+    }, [])
+
+    useEffect(() => {
         if (isSigned) {
             fetchTokenBalance()
 
-            let tokens = {}
-            for (let i = 1; i < tokenList.tokens.length; i ++) {
-                let item = tokenList.tokens[i]
-                tokens = {
-                    ...tokens,
+            let _tokens = {}
+            for (let i = 1; i < tokens.length; i ++) {
+                let item = tokens[i]
+                _tokens = {
+                    ..._tokens,
                     [item.symbol]: false
                 }
             }
-            setApproveState(tokens)
+            setApproveState(_tokens)
         }
     }, [isSigned])
 
@@ -296,22 +384,61 @@ function Swap({
                             tokenA.address,
                             toBigNumber("1", tokenA.decimals)
                         ).call()
-                    setExpectedAmount(fromBigNumber(amount, tokenB.decimals))
+                    setExpectedAmount(parseFloat(parseFloat(fromBigNumber(amount, tokenB.decimals)).toFixed(18)).toString())
                 } catch (err) {
                     console.log(err)
                 }
             })()
         }
+
+        if (tokenA.address === BNBAddress) {
+            setSearch({
+                'buy': tokenB.address
+            }, 'push')
+        }
+        else {
+            setSearch({
+                'sell': tokenA.address
+            }, 'push')
+        }
     }, [isSigned, tokenA, tokenB, provider])
 
     return (
         <section className='relative flex place-content-center w-full'>
-            <div className='container flex flex-col justify-center place-items-center py-24'>
-                <div className='w-29rem'>
-                    <div className='w-full bg-light-gray rounded-2xl px-5 pt-6 pb-8 space-y-3'>
+            <div className='container flex flex-col justify-center place-items-center py-16 sm:py-24'>
+                <div className='w-5/6 sm:w-29rem mini-phone:w-full mini-phone:px-3'>
+                    <div className='w-full flex justify-end px-3 pb-5 space-x-4 cursor-pointer'>
+                        <SlipageModal
+                            slipage={slipage}
+                            isDefault={isDefault}
+                            isOpen={isOpenSetting}
+                            closeModal={closeSetting}
+                            onChangeSlipage={onChangeSlipage}
+                        />
+                        <TokenInfoModal
+                            isOpen={isOpenTokenInfo}
+                            closeModal={closeTokenInfo}
+                            token={tokenA.address === BNBAddress ? tokenB : tokenA} />
+                        <button
+                            onClick={() => setIsOpenSetting(true)}
+                        >
+                            <span className='text-gray-300 hover:text-gray-100 text-xl cursor-pointer'>
+                                <i className='fas fa-cog'></i>
+                            </span>
+                        </button>
+                        <button
+                            onClick={() => setIsOpenTokenInfo(true)}
+                        >
+                            <span className='text-gray-300 hover:text-gray-100 text-xl'>
+                                <i className="fas fa-info-circle"></i>
+                            </span>
+                        </button>
+                    </div>
+                    <div className='w-full bg-light-gray rounded-2xl px-5 mini-phone:px-3 pt-6 pb-8 space-y-3'>
                         <TokenInput
                             token={tokenA}
                             value={inputA}
+                            tokens={tokens}
                             balance={balanceA}
                             onChangeInput={onChangeInputA}
                             onChangeToken={onChangeTokenA}
@@ -342,6 +469,7 @@ function Swap({
                         <TokenInput
                             token={tokenB}
                             value={inputB}
+                            tokens={tokens}
                             balance={balanceB}
                             onChangeInput={onChangeInputB}
                             onChangeToken={onChangeTokenB}
@@ -351,6 +479,7 @@ function Swap({
                     {!isSigned &&
                         <button
                             className='w-full bg-yellow hover:bg-opacity-90 text-gray-800 text-xl font-bold tracking-wider rounded-2xl uppercase py-3'
+                            onClick={connectWallet}
                         >
                             Connect wallet
                         </button>
