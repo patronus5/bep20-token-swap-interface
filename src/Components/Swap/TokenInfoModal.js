@@ -4,6 +4,7 @@ import {
     XIcon,
     QuestionMarkCircleIcon
 } from "@heroicons/react/outline"
+
 import tokenList from '../../Constants/Tokenlist.json'
 
 function TokenInfoModal({
