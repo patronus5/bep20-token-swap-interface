@@ -128,7 +128,6 @@ function TokenListModal({
                                                 <p className="text-left text-gray-400 text-sm">{token.name}</p>
                                             </div>
                                         </div>
-                                        {/* <p className="">0</p> */}
                                     </button>
                                 ))}
                             </div>
