@@ -20,8 +20,12 @@ function TokenListModal({
 
     const onSearch = (keyword) => {
         if (keyword != "") {
+            keyword = keyword.toLowerCase()
             let newTokenList = tokens.filter((item) => {
-                if (item.address.indexOf(keyword) != -1 || item.name.indexOf(keyword) != -1) {
+                if (
+                    item.address.toLowerCase().indexOf(keyword) != -1 ||
+                    item.symbol.toLowerCase().indexOf(keyword) != -1
+                ) {
                     return item
                 }
             })

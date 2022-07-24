@@ -144,7 +144,6 @@ function Swap({
             .catch((e) => {
                 console.log(e.message)
             })
-        // updateTokenAmount(inputA, token, true)
     }
 
     const onChangeTokenB = async (token) => {
@@ -163,7 +162,6 @@ function Swap({
             .catch((e) => {
                 console.log(e.message)
             })
-        // updateTokenAmount(inputB, token, false)
     }
 
     const onChangeInputA = (value) => {
