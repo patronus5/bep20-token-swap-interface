@@ -129,30 +129,40 @@ function Swap({
     }
     
     const onChangeTokenA = async (token) => {
-        let balance = await getTokenBalance(token)
-        if (token.address === BNBAddress && tokenB.address === BNBAddress) {
-            swapAB()
-            return
-        }
-        else if (token.address !== BNBAddress && tokenA.address === BNBAddress) {
-            swapAB()
-        }
-        setTokenA(token)
-        setBalanceA(balance.toString())
+        getTokenBalance(token)
+            .then((balance) => {
+                if (token.address === BNBAddress && tokenB.address === BNBAddress) {
+                    swapAB()
+                    return
+                }
+                else if (token.address !== BNBAddress && tokenA.address === BNBAddress) {
+                    swapAB()
+                }
+                setTokenA(token)
+                setBalanceA(balance.toString())
+            })
+            .catch((e) => {
+                console.log(e.message)
+            })
         // updateTokenAmount(inputA, token, true)
     }
 
     const onChangeTokenB = async (token) => {
-        const balance = await getTokenBalance(token)
-        if (token.address === BNBAddress && tokenA.address === BNBAddress) {
-            swapAB()
-            return
-        }
-        else if (token.address !== BNBAddress && tokenB.address === BNBAddress) {
-            swapAB()
-        }
-        setTokenB(token)
-        setBalanceB(balance.toString())
+        getTokenBalance(token)
+            .then((balance) => {
+                if (token.address === BNBAddress && tokenA.address === BNBAddress) {
+                    swapAB()
+                    return
+                }
+                else if (token.address !== BNBAddress && tokenB.address === BNBAddress) {
+                    swapAB()
+                }
+                setTokenB(token)
+                setBalanceB(balance.toString())
+            })
+            .catch((e) => {
+                console.log(e.message)
+            })
         // updateTokenAmount(inputB, token, false)
     }
 
@@ -184,11 +194,15 @@ function Swap({
         }
     }
 
-    const fetchTokenBalance = async () => {
-        const _balanceA = await getTokenBalance(tokenA)
-        const _balanceB = await getTokenBalance(tokenB)
-        setBalanceA(_balanceA.toString())
-        setBalanceB(_balanceB.toString())
+    const fetchTokenBalance = () => {
+        getTokenBalance(tokenA)
+            .then((_balanceA) => {
+                setBalanceA(_balanceA.toString())
+            })
+        getTokenBalance(tokenB)
+            .then((_balanceB) => {
+                setBalanceB(_balanceB.toString())
+            })
     }
 
     const updateTokenAmount = async (value, token, isTokenA) => {

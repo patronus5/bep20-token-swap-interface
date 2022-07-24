@@ -64,14 +64,27 @@ function SlipageModal({
                                         onClick={closeModal} />
                                 </button>
                             </Dialog.Title>
-                            <div className="w-full flex px-6 py-5 space-x-4">
-                                <button
-                                    className={classes}
-                                    onClick={(e) => onChangeSlipage(e.target.value, true)}>1.0%</button>
-                                <input
-                                    className="sm:flex-grow w-full bg-primary border border-gray-500 text-white text-sm font-medium rounded-lg block outline-none sm:pl-3 sm:pr-6 px-3"
-                                    onChange={(e) => onChangeSlipage(e.target.value, false)}
-                                    type="text" value={isDefault?'':slipage} placeholder="3" required />
+                            <div className="w-full flex flex-col px-6 py-7 space-y-4">
+                                <div className="w-full flex space-x-4">
+                                    <button
+                                        className={classes}
+                                        onClick={(e) => onChangeSlipage(e.target.value, true)}>1.0%</button>
+                                    <input
+                                        className="sm:flex-grow w-full bg-primary border border-gray-500 text-white text-sm font-medium rounded-lg block outline-none sm:pl-3 sm:pr-6 px-3"
+                                        onChange={(e) => onChangeSlipage(e.target.value, false)}
+                                        type="text" value={isDefault?'':slipage} placeholder="3" required />
+                                </div>
+                                { parseFloat(slipage) >= 5.0 &&
+                                    <div className="bg-light-gray-lighter text-center py-3 rounded-xl">
+                                        <h1 className="text-red-500 items-center">
+                                            <span className='text-xl cursor-pointer px-2'>
+                                                <i className='fas fa-exclamation-triangle'></i>
+                                            </span>
+                                            Slippage Warning {slipage} %
+                                        </h1>
+                                        <p className="text-gray-300">Your transaction may be frontrun</p>
+                                    </div>
+                                }
                             </div>
                         </div>
                     </Transition.Child>
