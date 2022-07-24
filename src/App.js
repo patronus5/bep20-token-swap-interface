@@ -9,7 +9,6 @@ import tokenList from './Constants/Tokenlist.json'
 import Swap from './Pages/Swap/Swap'
 import Header from './Layouts/Header'
 import {
-  getERC20Contract,
   getMemeRouterContract
 } from './Utils/ContractHelper'
 
