@@ -20,7 +20,6 @@ module.exports = {
         'light-gray-lighter': "#4F5259"
       },
       fontSize: {
-        'xt': '0.5rem'
       },
       screens: {
         'desktop-min': {
